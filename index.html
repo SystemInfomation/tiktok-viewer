@@ -3,191 +3,264 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TikTok Video Tracker</title>
+<title>TikTok Monitor</title>
 
 <style>
 :root {
-  --bg: #020617;
-  --card: rgba(255,255,255,0.05);
-  --border: rgba(255,255,255,0.1);
-  --text: #f1f5f9;
-  --muted: #94a3b8;
+  --bg: #ffffff;
+  --card: #ffffff;
+  --border: rgba(0,0,0,0.08);
+  --text: #111827;
+  --muted: #6b7280;
+  --secondary-bg: #f3f4f6;
   --green: #22c55e;
   --red: #ef4444;
+  --blue-bg: #eff6ff;
+  --blue-text: #1d4ed8;
+  --success-bg: #f0fdf4;
+  --success-text: #16a34a;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --border: rgba(255,255,255,0.08);
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --secondary-bg: rgba(255,255,255,0.05);
+    --blue-bg: rgba(59,130,246,0.15);
+    --blue-text: #93c5fd;
+    --success-bg: rgba(34,197,94,0.12);
+    --success-text: #4ade80;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  margin: 0;
-  font-family: Inter, sans-serif;
-  background: radial-gradient(circle at top, #0f172a, #020617);
+  font-family: -apple-system, BlinkMacSystemFont, Inter, sans-serif;
+  background: var(--bg);
   color: var(--text);
   display: flex;
   justify-content: center;
-  padding: 20px;
-}
-
-.container {
-  width: 100%;
-  max-width: 420px;
+  padding: 40px 20px;
+  min-height: 100vh;
 }
 
 .card {
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 20px;
-  backdrop-filter: blur(18px);
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  height: fit-content;
 }
 
-.header {
+.top-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 4px;
 }
 
-.dot {
+.app-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pulse {
   width: 8px;
   height: 8px;
-  background: var(--green);
   border-radius: 50%;
+  background: var(--green);
+  transition: background 0.3s;
 }
 
-.status {
+.pulse.error { background: var(--red); }
+
+.updated {
   font-size: 12px;
   color: var(--muted);
-  margin: 10px 0;
+  margin-bottom: 16px;
 }
 
 .badge {
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 999px;
   display: inline-block;
-  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 14px;
 }
 
-.ok { background: rgba(34,197,94,0.2); color: #4ade80; }
-.bad { background: rgba(239,68,68,0.2); color: #f87171; }
+.badge.active {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
 
-.video-title {
+.badge.loading {
+  background: var(--secondary-bg);
+  color: var(--muted);
+}
+
+.video-desc {
   font-size: 14px;
-  margin-bottom: 15px;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  min-height: 40px;
 }
 
-.stats {
+.stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
 .stat {
-  background: rgba(255,255,255,0.04);
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
+  background: var(--secondary-bg);
+  border-radius: 10px;
+  padding: 12px 14px;
 }
 
-.label {
-  font-size: 10px;
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--border);
+}
+
+.rank-label {
+  font-size: 12px;
   color: var(--muted);
 }
 
-.value {
-  font-size: 18px;
-  font-weight: 600;
+.rank-badge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: 8px;
+  background: var(--blue-bg);
+  color: var(--blue-text);
+}
+
+.spacer { flex: 1; }
+
+.duration {
+  font-size: 12px;
+  color: var(--muted);
 }
 </style>
 </head>
 
 <body>
+<div class="card">
+  <div class="top-row">
+    <div class="app-name">TikTok Monitor</div>
+    <div class="pulse" id="dot"></div>
+  </div>
+  <div class="updated" id="updated">Connecting...</div>
 
-<div class="container">
-  <div class="card">
-    <div class="header">
-      <div><strong>TikTok Tracker</strong></div>
-      <div class="dot"></div>
-    </div>
+  <span class="badge loading" id="badge">Loading</span>
 
-    <div id="status" class="status">Connecting...</div>
-    <div id="badge"></div>
-    <div id="title" class="video-title"></div>
+  <div class="video-desc" id="desc">—</div>
 
-    <div class="stats">
-      <div class="stat"><div class="label">Views</div><div id="views" class="value">-</div></div>
-      <div class="stat"><div class="label">Likes</div><div id="likes" class="value">-</div></div>
-      <div class="stat"><div class="label">Comments</div><div id="comments" class="value">-</div></div>
-      <div class="stat"><div class="label">Shares</div><div id="shares" class="value">-</div></div>
-    </div>
+  <div class="stats-grid">
+    <div class="stat"><div class="stat-label">Views</div><div class="stat-value" id="views">—</div></div>
+    <div class="stat"><div class="stat-label">Likes</div><div class="stat-value" id="likes">—</div></div>
+    <div class="stat"><div class="stat-label">Comments</div><div class="stat-value" id="comments">—</div></div>
+    <div class="stat"><div class="stat-label">Shares</div><div class="stat-value" id="shares">—</div></div>
+  </div>
+
+  <div class="rank-row">
+    <span class="rank-label">Rank</span>
+    <span class="rank-badge" id="rank">—</span>
+    <div class="spacer"></div>
+    <span class="duration" id="duration"></span>
   </div>
 </div>
 
 <script>
 const API_URL = "https://api.buzzlytics.io/metadata?username=fcs.schools&service=tiktok";
-
-// ✅ YOUR TARGET VIDEO (most popular one)
 const TARGET_ID = "7627717737246117134";
+
+const fmt = n => n >= 1000000
+  ? (n / 1000000).toFixed(1) + 'M'
+  : n >= 1000
+  ? (n / 1000).toFixed(1) + 'K'
+  : String(n);
 
 let prev = {};
 
-// animate numbers
-function animate(id, value) {
+function animateValue(id, newVal) {
   const el = document.getElementById(id);
-  const start = prev[id] || 0;
-
-  if (start === value) return;
-
-  const duration = 400;
-  const startTime = performance.now();
-
-  function frame(t) {
-    const progress = Math.min((t - startTime) / duration, 1);
-    const current = Math.floor(start + (value - start) * progress);
-    el.textContent = current.toLocaleString();
-    if (progress < 1) requestAnimationFrame(frame);
-  }
-
-  requestAnimationFrame(frame);
-  prev[id] = value;
+  const oldVal = prev[id] ?? newVal;
+  if (oldVal === newVal) { el.textContent = fmt(newVal); return; }
+  const start = oldVal, duration = 400, t0 = performance.now();
+  const tick = t => {
+    const p = Math.min((t - t0) / duration, 1);
+    el.textContent = fmt(Math.round(start + (newVal - start) * p));
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  prev[id] = newVal;
 }
 
-// fetch + update
-async function update() {
+async function check() {
   try {
-    const res = await fetch(API_URL, { cache: "no-store" });
+    const res = await fetch(API_URL);
     const data = await res.json();
 
-    const video = data.videos?.find(v => v.id === TARGET_ID);
+    const video = (data.videos || []).find(v => v.id === TARGET_ID);
+    const stats = data.data?.[0];
 
-    document.getElementById("status").innerText =
-      "Last updated: " + new Date().toLocaleTimeString();
-
-    if (!video) {
-      document.getElementById("badge").innerHTML =
-        `<span class="badge bad">Video Not Found</span>`;
+    if (!video || !stats) {
+      document.getElementById('badge').className = 'badge loading';
+      document.getElementById('badge').textContent = 'No data';
+      document.getElementById('dot').className = 'pulse error';
       return;
     }
 
-    document.getElementById("badge").innerHTML =
-      `<span class="badge ok">Tracking Live</span>`;
+    document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    document.getElementById('dot').className = 'pulse';
+    document.getElementById('badge').className = 'badge active';
+    document.getElementById('badge').textContent = 'Live';
+    document.getElementById('desc').textContent = video.videoDescription;
+    document.getElementById('rank').textContent = 'Rank ' + video.rank;
+    document.getElementById('duration').textContent = video.duration + 's';
 
-    document.getElementById("title").innerText =
-      video.videoDescription || "No caption";
+    animateValue('views',    stats.views);
+    animateValue('likes',    stats.likes);
+    animateValue('comments', stats.comments);
+    animateValue('shares',   stats.shares);
 
-    animate("views", video.views || 0);
-    animate("likes", video.likes || 0);
-    animate("comments", video.comments || 0);
-    animate("shares", video.shares || 0);
-
-  } catch (err) {
-    document.getElementById("status").innerText = "Error loading data";
-    console.error(err);
+  } catch(e) {
+    document.getElementById('updated').textContent = 'Connection error';
+    document.getElementById('dot').className = 'pulse error';
   }
 }
 
-// refresh every 2 seconds
-setInterval(update, 2000);
-update();
+setInterval(check, 5000);
+check();
 </script>
-
 </body>
 </html>
