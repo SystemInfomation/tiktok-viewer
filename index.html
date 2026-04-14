@@ -3,24 +3,22 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TikTok Monitor</title>
+<title>TikTok Video Tracker</title>
 
 <style>
 :root {
   --bg: #020617;
-  --card: rgba(255,255,255,0.04);
-  --border: rgba(255,255,255,0.08);
+  --card: rgba(255,255,255,0.05);
+  --border: rgba(255,255,255,0.1);
   --text: #f1f5f9;
   --muted: #94a3b8;
   --green: #22c55e;
   --red: #ef4444;
 }
 
-* { box-sizing: border-box; }
-
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Inter, sans-serif;
+  font-family: Inter, sans-serif;
   background: radial-gradient(circle at top, #0f172a, #020617);
   color: var(--text);
   display: flex;
@@ -35,11 +33,10 @@ body {
 
 .card {
   background: var(--card);
-  backdrop-filter: blur(18px);
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 20px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  backdrop-filter: blur(18px);
 }
 
 .header {
@@ -48,23 +45,17 @@ body {
   align-items: center;
 }
 
-.title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
 .dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
   background: var(--green);
+  border-radius: 50%;
 }
 
 .status {
   font-size: 12px;
   color: var(--muted);
-  margin-top: 6px;
-  margin-bottom: 14px;
+  margin: 10px 0;
 }
 
 .badge {
@@ -75,13 +66,12 @@ body {
   margin-bottom: 10px;
 }
 
-.ok { background: rgba(34,197,94,0.15); color: #4ade80; }
-.bad { background: rgba(239,68,68,0.15); color: #f87171; }
+.ok { background: rgba(34,197,94,0.2); color: #4ade80; }
+.bad { background: rgba(239,68,68,0.2); color: #f87171; }
 
 .video-title {
   font-size: 14px;
-  margin-bottom: 14px;
-  line-height: 1.4;
+  margin-bottom: 15px;
 }
 
 .stats {
@@ -91,9 +81,9 @@ body {
 }
 
 .stat {
+  background: rgba(255,255,255,0.04);
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.03);
   border: 1px solid var(--border);
 }
 
@@ -105,12 +95,6 @@ body {
 .value {
   font-size: 18px;
   font-weight: 600;
-  margin-top: 4px;
-}
-
-@media (max-width: 400px) {
-  .value { font-size: 16px; }
-  .video-title { font-size: 13px; }
 }
 </style>
 </head>
@@ -120,12 +104,11 @@ body {
 <div class="container">
   <div class="card">
     <div class="header">
-      <div class="title">TikTok Monitor</div>
+      <div><strong>TikTok Tracker</strong></div>
       <div class="dot"></div>
     </div>
 
     <div id="status" class="status">Connecting...</div>
-
     <div id="badge"></div>
     <div id="title" class="video-title"></div>
 
@@ -140,71 +123,70 @@ body {
 
 <script>
 const API_URL = "https://api.buzzlytics.io/metadata?username=fcs.schools&service=tiktok";
+
+// ✅ YOUR TARGET VIDEO (most popular one)
 const TARGET_ID = "7627717737246117134";
 
 let prev = {};
 
-// smooth number update
-function animateValue(id, newVal) {
+// animate numbers
+function animate(id, value) {
   const el = document.getElementById(id);
-  const oldVal = prev[id] || 0;
+  const start = prev[id] || 0;
 
-  if (oldVal === newVal) return;
+  if (start === value) return;
 
-  let start = oldVal;
-  const duration = 300;
+  const duration = 400;
   const startTime = performance.now();
 
-  function update(t) {
+  function frame(t) {
     const progress = Math.min((t - startTime) / duration, 1);
-    const val = Math.floor(start + (newVal - start) * progress);
-    el.textContent = val.toLocaleString();
-    if (progress < 1) requestAnimationFrame(update);
+    const current = Math.floor(start + (value - start) * progress);
+    el.textContent = current.toLocaleString();
+    if (progress < 1) requestAnimationFrame(frame);
   }
 
-  requestAnimationFrame(update);
-  prev[id] = newVal;
+  requestAnimationFrame(frame);
+  prev[id] = value;
 }
 
-async function check() {
+// fetch + update
+async function update() {
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch(API_URL, { cache: "no-store" });
     const data = await res.json();
 
-    if (!data.videos?.length) return;
-
-    const v = data.videos.sort((a,b)=>b.createTime-a.createTime)[0];
+    const video = data.videos?.find(v => v.id === TARGET_ID);
 
     document.getElementById("status").innerText =
-      "Updated " + new Date().toLocaleTimeString();
+      "Last updated: " + new Date().toLocaleTimeString();
 
-    if (v.id === TARGET_ID) {
+    if (!video) {
       document.getElementById("badge").innerHTML =
-        `<span class="badge ok">ACTIVE</span>`;
-      document.getElementById("title").innerText = v.videoDescription;
-
-      animateValue("views", v.views);
-      animateValue("likes", v.likes);
-      animateValue("comments", v.comments);
-      animateValue("shares", v.shares);
-
-    } else {
-      document.getElementById("badge").innerHTML =
-        `<span class="badge bad">NOT LATEST</span>`;
-      document.getElementById("title").innerText = "Latest video mismatch";
-
-      ["views","likes","comments","shares"].forEach(id=>{
-        document.getElementById(id).textContent = "-";
-      });
+        `<span class="badge bad">Video Not Found</span>`;
+      return;
     }
 
-  } catch {
-    document.getElementById("status").innerText = "Connection error";
+    document.getElementById("badge").innerHTML =
+      `<span class="badge ok">Tracking Live</span>`;
+
+    document.getElementById("title").innerText =
+      video.videoDescription || "No caption";
+
+    animate("views", video.views || 0);
+    animate("likes", video.likes || 0);
+    animate("comments", video.comments || 0);
+    animate("shares", video.shares || 0);
+
+  } catch (err) {
+    document.getElementById("status").innerText = "Error loading data";
+    console.error(err);
   }
 }
 
-setInterval(check, 1000);
-check();
+// refresh every 2 seconds
+setInterval(update, 2000);
+update();
 </script>
 
 </body>
